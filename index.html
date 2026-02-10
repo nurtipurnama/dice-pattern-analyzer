@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Pattern Analyzer v1.1 - Sistem Prediksi Berbasis Data</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎲 Dice Pattern Analyzer v1.1</h1>
+            <p class="subtitle">Sistem Rekomendasi Berbasis Analisis Data, Pola Transisi, & Psikologi Numerik</p>
+        </header>
+
+        <!-- Quick Stats Bar -->
+        <div class="quick-stats">
+            <div class="quick-stat-item">
+                <span class="stat-label">Total Game</span>
+                <span class="stat-value" id="quickTotal">0</span>
+            </div>
+            <div class="quick-stat-item">
+                <span class="stat-label">K:B Ratio</span>
+                <span class="stat-value" id="quickRatio">-</span>
+            </div>
+            <div class="quick-stat-item">
+                <span class="stat-label">Trend Aktual</span>
+                <span class="stat-value" id="quickTrend">-</span>
+            </div>
+            <div class="quick-stat-item">
+                <span class="stat-label">State Terakhir</span>
+                <span class="stat-value" id="quickState">-</span>
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <section class="input-section">
+            <h2>📊 Input Data Game</h2>
+            <div class="input-form">
+                <div class="form-group">
+                    <label for="roll1">Roll 1 (Total 6 kotak: 6-54)</label>
+                    <input type="number" id="roll1" min="6" max="54" placeholder="Masukkan total roll 1">
+                </div>
+
+                <div class="form-group">
+                    <label for="roll2">Roll 2 (Total 6 kotak: 6-54)</label>
+                    <input type="number" id="roll2" min="6" max="54" placeholder="Masukkan total roll 2">
+                </div>
+
+                <button class="btn-add" onclick="addGame()">➕ Tambah Game</button>
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn-secondary" onclick="clearAllData()">🗑️ Hapus Semua</button>
+                <button class="btn-secondary" onclick="downloadData()">📥 Download Data</button>
+                <button class="btn-secondary" onclick="importData()">📤 Import Data</button>
+            </div>
+            <input type="file" id="importFile" style="display:none;" accept=".json" onchange="handleImport(event)">
+        </section>
+
+        <!-- Data Table -->
+        <section class="data-section">
+            <h2>📈 Riwayat Data Game</h2>
+            <div class="table-filters">
+                <input type="text" id="searchFilter" placeholder="🔍 Cari game..." onkeyup="filterTable()">
+                <select id="sortFilter" onchange="filterTable()">
+                    <option value="desc">Terbaru Dulu</option>
+                    <option value="asc">Terlama Dulu</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="dataTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Roll 1</th>
+                            <th>State 1</th>
+                            <th>Roll 2</th>
+                            <th>State 2</th>
+                            <th>Selisih</th>
+                            <th>Tren</th>
+                            <th>K/B</th>
+                            <th>Waktu</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                <p id="emptyMessage" class="empty-message">Belum ada data. Mulai dengan menambah game pertama.</p>
+            </div>
+        </section>
+
+        <!-- Core Analysis Dashboard -->
+        <section class="analysis-section">
+            <h2>🔍 Analisis Data Historis</h2>
+            <div class="analysis-grid">
+                <!-- Numeric Trend Analysis -->
+                <div class="analysis-card">
+                    <h3>📊 Tren Numerik</h3>
+                    <div class="stat-item">
+                        <span>Naik (↑)</span>
+                        <strong id="trendUp">0</strong>
+                        <div class="mini-bar">
+                            <div class="mini-bar-fill" id="barUpMini" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <span>Turun (↓)</span>
+                        <strong id="trendDown">0</strong>
+                        <div class="mini-bar">
+                            <div class="mini-bar-fill down" id="barDownMini" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <span>Stabil (→)</span>
+                        <strong id="trendStable">0</strong>
+                        <div class="mini-bar">
+                            <div class="mini-bar-fill stable" id="barStableMini" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- State Distribution -->
+                <div class="analysis-card">
+                    <h3>🎯 Distribusi State</h3>
+                    <div class="state-list">
+                        <div class="state-item-dist">
+                            <span class="state-badge low">LOW (6-18)</span>
+                            <span class="state-count" id="stateLow">0</span>
+                        </div>
+                        <div class="state-item-dist">
+                            <span class="state-badge mid">MID (19-31)</span>
+                            <span class="state-count" id="stateMid">0</span>
+                        </div>
+                        <div class="state-item-dist">
+                            <span class="state-badge high">HIGH (32-43)</span>
+                            <span class="state-count" id="stateHigh">0</span>
+                        </div>
+                        <div class="state-item-dist">
+                            <span class="state-badge extreme">EXTREME (44-54)</span>
+                            <span class="state-count" id="stateExtreme">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- K/B Distribution -->
+                <div class="analysis-card">
+                    <h3>⚖️ Distribusi K/B</h3>
+                    <div class="kb-stats">
+                        <div class="kb-item">
+                            <span>KECIL (6-31)</span>
+                            <strong id="countSmall">0</strong>
+                        </div>
+                        <div class="kb-item">
+                            <span>BESAR (32-54)</span>
+                            <strong id="countBig">0</strong>
+                        </div>
+                    </div>
+                    <div class="kb-bar">
+                        <div class="kb-segment small" id="barSmall" style="width: 0%"></div>
+                        <div class="kb-segment big" id="barBig" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Average Values -->
+                <div class="analysis-card">
+                    <h3>📈 Nilai Rata-rata</h3>
+                    <div class="stat-item">
+                        <span>Rata-rata Roll 1</span>
+                        <strong id="avgRoll1">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Rata-rata Roll 2</span>
+                        <strong id="avgRoll2">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Rata-rata Selisih</span>
+                        <strong id="avgDiff">0</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- State Transition Matrix -->
+        <section class="transition-section">
+            <h2>🔗 Matriks Transisi State (Markov Analysis)</h2>
+            <div class="transition-info">
+                <p>Menunjukkan pola perpindahan state: dari state mana yang sering keluar, ke state mana biasanya transisinya</p>
+            </div>
+            <div class="transition-matrix-container">
+                <table id="transitionMatrix" class="transition-matrix">
+                    <thead>
+                        <tr>
+                            <th>Dari \ Ke</th>
+                            <th>LOW</th>
+                            <th>MID</th>
+                            <th>HIGH</th>
+                            <th>EXTREME</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="label">LOW</td>
+                            <td id="t-low-low">0</td>
+                            <td id="t-low-mid">0</td>
+                            <td id="t-low-high">0</td>
+                            <td id="t-low-ext">0</td>
+                        </tr>
+                        <tr>
+                            <td class="label">MID</td>
+                            <td id="t-mid-low">0</td>
+                            <td id="t-mid-mid">0</td>
+                            <td id="t-mid-high">0</td>
+                            <td id="t-mid-ext">0</td>
+                        </tr>
+                        <tr>
+                            <td class="label">HIGH</td>
+                            <td id="t-high-low">0</td>
+                            <td id="t-high-mid">0</td>
+                            <td id="t-high-high">0</td>
+                            <td id="t-high-ext">0</td>
+                        </tr>
+                        <tr>
+                            <td class="label">EXTREME</td>
+                            <td id="t-ext-low">0</td>
+                            <td id="t-ext-mid">0</td>
+                            <td id="t-ext-high">0</td>
+                            <td id="t-ext-ext">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Prediction Section - Multi-Step -->
+        <section class="prediction-section">
+            <h2>🔮 Rekomendasi Kemunculan Multi-Step</h2>
+            <div class="prediction-tabs">
+                <button class="tab-btn active" onclick="switchTab('next2')">2 Game</button>
+                <button class="tab-btn" onclick="switchTab('next5')">5 Game</button>
+                <button class="tab-btn" onclick="switchTab('next10')">10 Game</button>
+            </div>
+
+            <!-- 2 Games Ahead -->
+            <div id="next2" class="prediction-tab active">
+                <div class="prediction-header">
+                    <h3>Prediksi 2 Game Kedepan</h3>
+                    <p class="prediction-range-info">Berbasis tren dekat & transisi state aktual</p>
+                </div>
+                
+                <div class="prediction-container">
+                    <div class="prediction-game-group">
+                        <h4>Game +1 (Berikutnya)</h4>
+                        <div class="prediction-result">
+                            <div class="prediction-item small">
+                                <div class="prediction-label">KECIL</div>
+                                <div class="prediction-percentage" id="pred2_1_small">--</div>
+                                <div class="prediction-bar">
+                                    <div class="bar-fill small" id="predBar2_1_small" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="prediction-item big">
+                                <div class="prediction-label">BESAR</div>
+                                <div class="prediction-percentage" id="pred2_1_big">--</div>
+                                <div class="prediction-bar">
+                                    <div class="bar-fill big" id="predBar2_1_big" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="prediction-confidence">
+                            <span>Confidence Score: <strong id="conf2_1">-</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="prediction-game-group">
+                        <h4>Game +2</h4>
+                        <div class="prediction-result">
+                            <div class="prediction-item small">
+                                <div class="prediction-label">KECIL</div>
+                                <div class="prediction-percentage" id="pred2_2_small">--</div>
+                                <div class="prediction-bar">
+                                    <div class="bar-fill small" id="predBar2_2_small" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="prediction-item big">
+                                <div class="prediction-label">BESAR</div>
+                                <div class="prediction-percentage" id="pred2_2_big">--</div>
+                                <div class="prediction-bar">
+                                    <div class="bar-fill big" id="predBar2_2_big" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="prediction-confidence">
+                            <span>Confidence Score: <strong id="conf2_2">-</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 Games Ahead -->
+            <div id="next5" class="prediction-tab">
+                <div class="prediction-header">
+                    <h3>Prediksi 5 Game Kedepan</h3>
+                    <p class="prediction-range-info">Berbasis pola tengah & stabilitas state</p>
+                </div>
+                
+                <div class="prediction-container-5">
+                    <div id="pred5Container" class="pred5-grid"></div>
+                </div>
+            </div>
+
+            <!-- 10 Games Ahead -->
+            <div id="next10" class="prediction-tab">
+                <div class="prediction-header">
+                    <h3>Prediksi 10 Game Kedepan</h3>
+                    <p class="prediction-range-info">Berbasis pola keseluruhan & tren jangka panjang</p>
+                </div>
+                
+                <div class="prediction-container-10">
+                    <div id="pred10Container" class="pred10-grid"></div>
+                    <div class="pattern-insights">
+                        <h4>📊 Insights Pola Jangka Panjang</h4>
+                        <ul id="patternInsightsList" class="insights-list">
+                            <li>Tunggu minimal 5 data untuk analisis jangka panjang</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Basis Section -->
+        <section class="analysis-basis-section">
+            <h2>📋 Dasar Analisis & Metodologi</h2>
+            <div class="basis-tabs">
+                <button class="basis-tab-btn active" onclick="switchBasisTab('methodology')">Metodologi</button>
+                <button class="basis-tab-btn" onclick="switchBasisTab('factors')">Faktor Penilaian</button>
+                <button class="basis-tab-btn" onclick="switchBasisTab('psychology')">Aspek Psikologi</button>
+            </div>
+
+            <div id="methodology" class="basis-tab-content active">
+                <h3>Cara Kerja Sistem Prediksi</h3>
+                <div class="methodology-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <strong>Data Collection</strong>
+                            <p>Mengumpulkan riwayat game dengan roll1 & roll2, otomatis mengklasifikasi ke state (LOW, MID, HIGH, EXTREME)</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <strong>Trend Analysis</strong>
+                            <p>Menganalisis pergerakan numerik (naik/turun/stabil) dari perbedaan roll2-roll1</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <strong>Markov Transition</strong>
+                            <p>Membangun matriks transisi state untuk mengetahui ke state mana yang sering terjadi setelah state tertentu</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <strong>Pattern Window</strong>
+                            <p>Fokus ke 5-10 game terbaru untuk mendeteksi pola aktual yang sedang berlangsung</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <strong>Hybrid Scoring</strong>
+                            <p>Menggabungkan 6 faktor independen untuk menghasilkan rekomendasi K vs B</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <strong>Confidence Calculation</strong>
+                            <p>Menghitung tingkat kepercayaan berdasarkan konsistensi data historis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="factors" class="basis-tab-content">
+                <h3>6 Faktor Penilaian Independen</h3>
+                <div class="factors-list">
+                    <div class="factor-item">
+                        <div class="factor-number">①</div>
+                        <div class="factor-details">
+                            <strong>Numeric Trend (Bobot 20%)</strong>
+                            <p>Arah pergerakan angka dari roll terakhir: naik cenderung menuju BESAR, turun menuju KECIL</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-number">②</div>
+                        <div class="factor-details">
+                            <strong>Current State (Bobot 25%)</strong>
+                            <p>State dari roll terakhir menentukan zona mana yang sedang aktif</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-number">③</div>
+                        <div class="factor-details">
+                            <strong>State Transition (Bobot 20%)</strong>
+                            <p>Probabilitas Markov: dari state sekarang, kemana kita sering pergi</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-number">④</div>
+                        <div class="factor-details">
+                            <strong>Distance from Center (Bobot 15%)</strong>
+                            <p>Seberapa jauh nilai terakhir dari titik tengah 30 (pembatas K/B)</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-number">⑤</div>
+                        <div class="factor-details">
+                            <strong>Recent Pattern Memory (Bobot 15%)</strong>
+                            <p>Dominasi K/B di 5-10 game terakhir (memory window yang dekat)</p>
+                        </div>
+                    </div>
+                    <div class="factor-item">
+                        <div class="factor-number">⑥</div>
+                        <div class="factor-details">
+                            <strong>Alternation Index (Bobot 5%)</strong>
+                            <p>Frekuensi perubahan K↔B (jika sering berubah vs konsisten)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="psychology" class="basis-tab-content">
+                <h3>Aspek Psikologi & Bias Numerik</h3>
+                <div class="psychology-items">
+                    <div class="psychology-card">
+                        <h4>🔄 Regression to Mean</h4>
+                        <p>Setelah beberapa game BESAR berturut-turut, ada kecenderungan kembali ke rata-rata. Sistem mendeteksi ini via rerata historis.</p>
+                    </div>
+                    <div class="psychology-card">
+                        <h4>🎯 Hot Hand Fallacy</h4>
+                        <p>Apakah ada momentum? Sistem memeriksa apakah tren berkelanjutan atau sudah berubah melalui recent pattern window.</p>
+                    </div>
+                    <div class="psychology-card">
+                        <h4>⚖️ Balancing Effect</h4>
+                        <p>Angka cenderung seimbang dalam jangka panjang. Jika K dominan 10 game, peluang B meningkat (faktor recent memory).</p>
+                    </div>
+                    <div class="psychology-card">
+                        <h4>📊 Clustering</h4>
+                        <p>State tertentu biasanya muncul dalam cluster (beberapa kali berturut-turut). Markov transition menangkap ini.</p>
+                    </div>
+                    <div class="psychology-card">
+                        <h4>🔀 Alternation Bias</h4>
+                        <p>Jika terjadi banyak alternasi K-B-K-B, natural untuk mengharapkan stabilisasi. Alternation Index mengukur ini.</p>
+                    </div>
+                    <div class="psychology-card">
+                        <h4>📈 Magnitude Sensitivity</h4>
+                        <p>Nilai ekstrem (44-54 atau 6-18) memicu ekspektasi yang berbeda. Distance from Center mengukur pengaruh ini.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Summary -->
+        <section class="stats-section">
+            <h2>📊 Ringkasan Statistik</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalGames">0</div>
+                    <div class="stat-label">Total Game</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="minRoll">0</div>
+                    <div class="stat-label">Nilai Minimum</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="maxRoll">0</div>
+                    <div class="stat-label">Nilai Maksimum</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="medianRoll">0</div>
+                    <div class="stat-label">Median</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stdDevRoll">0</div>
+                    <div class="stat-label">Std Deviation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="volatilityRoll">0</div>
+                    <div class="stat-label">Volatilitas</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Disclaimer -->
+        <footer class="disclaimer">
+            <h3>⚠️ Disclaimer Ilmiah & Batasan Sistem</h3>
+            <div class="disclaimer-content">
+                <p>
+                    <strong>Sifat Analisis:</strong> Sistem ini adalah <strong>DESKRIPTIF</strong> (menggambarkan pola yang terlihat dari data historis), 
+                    bukan <strong>PREDIKTIF PROBABILISTIK</strong> yang menjamin hasil masa depan.
+                </p>
+                <p>
+                    <strong>Independensi Game:</strong> Setiap game bersifat independen. Hasil historis TIDAK menjamin hasil masa depan. 
+                    Hanya karena K muncul 7x berturut-turut bukan berarti B akan muncul berikutnya.
+                </p>
+                <p>
+                    <strong>Tujuan Penggunaan:</strong> Sistem ini dirancang untuk:
+                    <ul>
+                        <li>✓ Analisis pola & trend dari data historis</li>
+                        <li>✓ Edukasi tentang Markov chains & state transition</li>
+                        <li>✓ Observasi perilaku numerik dalam jangka panjang</li>
+                        <li>✗ Prediksi akurat atau jaminan keberhasilan</li>
+                        <li>✗ Panduan pengambilan keputusan finansial</li>
+                    </ul>
+                </p>
+                <p>
+                    <strong>Batasan Data:</strong> Dengan data terbatas (<20 games), confidence score akan rendah. 
+                    Pola baru dapat muncul kapan saja yang mengubah analisis sebelumnya.
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
